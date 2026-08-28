@@ -1,0 +1,26 @@
+---
+- name: Validar backups en el servidor destino
+  hosts: destino
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Buscar backups almacenados
+      ansible.builtin.find:
+        paths: "{{ backup_destination_path }}"
+        patterns: "*.tar.gz"
+        recurse: true
+      register: backup_files
+
+    - name: Mostrar backups encontrados
+      ansible.builtin.debug:
+        msg: >-
+          Se encontraron {{ backup_files.matched }} backups:
+          {{ backup_files.files | map(attribute='path') | list }}
+
+    - name: Comprobar que existen backups
+      ansible.builtin.assert:
+        that:
+          - backup_files.matched | int > 0
+        fail_msg: "No se encontraron backups en {{ backup_destination_path }}"
+        success_msg: "Los backups existen correctamente en {{ backup_destination_path }}"
