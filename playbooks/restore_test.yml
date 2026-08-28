@@ -1,37 +1,85 @@
 ---
-- name: Prueba de restauración de backup
+- name: Prueba real de restauración de backup
   hosts: Destino
   become: true
   gather_facts: false
 
   tasks:
+
     - name: Buscar backups disponibles
       ansible.builtin.find:
         paths: "{{ backup_destination_path }}"
         patterns: "*.tar.gz"
         recurse: true
+        file_type: file
       register: backup_files
 
     - name: Comprobar que existe al menos un backup
       ansible.builtin.assert:
         that:
           - backup_files.matched | int > 0
-        fail_msg: "No hay backups disponibles para realizar la prueba"
-        success_msg: "Hay backups disponibles para la prueba"
+        fail_msg: "No hay backups disponibles para realizar la restauración"
+        success_msg: "Hay backups disponibles para realizar la restauración"
 
     - name: Seleccionar el backup más reciente
       ansible.builtin.set_fact:
-        test_backup: "{{ backup_files.files | sort(attribute='mtime', reverse=true) | first }}"
+        test_backup: >-
+          {{ backup_files.files
+             | sort(attribute='mtime', reverse=true)
+             | first }}
 
-    - name: Comprobar integridad del backup
-      ansible.builtin.command:
-        cmd: "tar -tzf {{ test_backup.path }}"
-      register: tar_test
-      changed_when: false
-
-    - name: Mostrar resultado de la prueba
+    - name: Mostrar backup seleccionado
       ansible.builtin.debug:
-        msg: >-
-          Backup válido: {{ test_backup.path }}
-          | Elementos encontrados: {{ tar_test.stdout_lines | length }}
+        msg: "Backup seleccionado para restauración: {{ test_backup.path }}"
+
+    - name: Crear directorio temporal de restauración
+      ansible.builtin.file:
+        path: /tmp/restore-test
+        state: directory
+        mode: "0755"
+
+    - name: Limpiar restauración anterior
+      ansible.builtin.file:
+        path: /tmp/restore-test
+        state: absent
+
+    - name: Crear nuevamente el directorio temporal
+      ansible.builtin.file:
+        path: /tmp/restore-test
+        state: directory
+        mode: "0755"
+
+    - name: Restaurar backup en directorio temporal
+      ansible.builtin.unarchive:
+        src: "{{ test_backup.path }}"
+        dest: /tmp/restore-test
+        remote_src: true
+
+    - name: Buscar archivos restaurados
+      ansible.builtin.find:
+        paths: /tmp/restore-test
+        recurse: true
+        file_type: file
+      register: restored_files
+
+    - name: Comprobar que la restauración contiene archivos
+      ansible.builtin.assert:
+        that:
+          - restored_files.matched | int > 0
+        fail_msg: "La restauración no contiene ningún archivo"
+        success_msg: >-
+          Restauración correcta:
+          {{ restored_files.matched }} archivos recuperados
+
+    - name: Mostrar resultado de la restauración
+      ansible.builtin.debug:
+        msg:
+          - "Backup utilizado: {{ test_backup.path }}"
+          - "Directorio de restauración: /tmp/restore-test"
+          - "Archivos recuperados: {{ restored_files.matched }}"
+
+    - name: Limpiar directorio temporal de restauración
+      ansible.builtin.file:
+        path: /tmp/restore-test
+        state: absent
 
