@@ -34,7 +34,7 @@
 
 
 - name: Preparar destino
-  hosts: destino
+  hosts: Destino
   become: true
   gather_facts: false
 
