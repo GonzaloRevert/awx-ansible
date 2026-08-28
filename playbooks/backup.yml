@@ -12,10 +12,14 @@
         mode: "0755"
 
     - name: Crear backup comprimido
-      ansible.builtin.archive:
-        path: "{{ backup_source_path }}/"
-        dest: "/tmp/ansible-backup/{{ inventory_hostname }}-{{ ansible_date_time.date }}.tar.gz"
-        format: gz
+      ansible.builtin.command:
+        cmd: >-
+          tar -czf
+          /tmp/ansible-backup/{{ inventory_hostname }}-{{ ansible_date_time.date }}.tar.gz
+          -C {{ backup_source_path }}
+          .
+      register: backup_result
+      changed_when: true
 
     - name: Comprobar backup
       ansible.builtin.stat:
