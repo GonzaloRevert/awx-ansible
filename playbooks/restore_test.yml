@@ -32,12 +32,6 @@
       ansible.builtin.debug:
         msg: "Backup seleccionado para restauración: {{ test_backup.path }}"
 
-    - name: Crear directorio temporal de restauración
-      ansible.builtin.file:
-        path: /tmp/restore-test
-        state: directory
-        mode: "0755"
-
     - name: Limpiar restauración anterior
       ansible.builtin.file:
         path: /tmp/restore-test
@@ -82,4 +76,3 @@
       ansible.builtin.file:
         path: /tmp/restore-test
         state: absent
-
