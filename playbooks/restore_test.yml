@@ -1,6 +1,6 @@
 ---
 - name: Prueba de restauración de backup
-  hosts: destino
+  hosts: Destino
   become: true
   gather_facts: false
 
@@ -19,11 +19,11 @@
         fail_msg: "No hay backups disponibles para realizar la prueba"
         success_msg: "Hay backups disponibles para la prueba"
 
-    - name: Seleccionar el primer backup
+    - name: Seleccionar el backup más reciente
       ansible.builtin.set_fact:
         test_backup: "{{ backup_files.files | sort(attribute='mtime', reverse=true) | first }}"
 
-    - name: Comprobar integridad del archivo
+    - name: Comprobar integridad del backup
       ansible.builtin.command:
         cmd: "tar -tzf {{ test_backup.path }}"
       register: tar_test
@@ -32,6 +32,6 @@
     - name: Mostrar resultado de la prueba
       ansible.builtin.debug:
         msg: >-
-          Backup válido:
-          {{ test_backup.path }}
-          | Elementos: {{ tar_test.stdout_lines | length }}
+          Backup válido: {{ test_backup.path }}
+          | Elementos encontrados: {{ tar_test.stdout_lines | length }}
+
