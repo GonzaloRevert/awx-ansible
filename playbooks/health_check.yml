@@ -1,0 +1,30 @@
+---
+- name: Health check de servidores
+  hosts: all
+  gather_facts: true
+  become: true
+
+  tasks:
+    - name: Mostrar hostname
+      ansible.builtin.debug:
+        msg: "Hostname: {{ ansible_hostname }}"
+
+    - name: Comprobar espacio en /
+      ansible.builtin.command: df -h /
+      register: disk_usage
+      changed_when: false
+
+    - name: Mostrar espacio en /
+      ansible.builtin.debug:
+        var: disk_usage.stdout_lines
+
+    - name: Recoger información de servicios
+      ansible.builtin.service_facts:
+
+    - name: Comprobar SSH
+      ansible.builtin.debug:
+        msg: >-
+          SSH: {{
+            ansible_facts.services['ssh.service'].state
+            | default('no encontrado')
+          }}

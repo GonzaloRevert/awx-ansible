@@ -1,0 +1,4 @@
+---
+backup_destination_host: srv-destino-01
+backup_destination_path: /backups
+backup_source_path: /datos_prueba

@@ -1,0 +1,67 @@
+---
+- name: Crear archivos de backup en los servidores origen
+  hosts: backup_sources
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Crear directorio temporal
+      ansible.builtin.file:
+        path: /tmp/ansible-backup
+        state: directory
+        mode: "0755"
+
+    - name: Crear backup comprimido
+      ansible.builtin.archive:
+        path: "{{ backup_source_path }}/"
+        dest: "/tmp/ansible-backup/{{ inventory_hostname }}-{{ ansible_date_time.date }}.tar.gz"
+        format: gz
+
+    - name: Comprobar backup
+      ansible.builtin.stat:
+        path: "/tmp/ansible-backup/{{ inventory_hostname }}-{{ ansible_date_time.date }}.tar.gz"
+      register: backup_stat
+
+    - name: Mostrar tamaño del backup
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}:
+          {{ backup_stat.stat.size }} bytes
+
+
+- name: Preparar destino
+  hosts: destino
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Crear directorios de backup
+      ansible.builtin.file:
+        path: "{{ backup_destination_path }}/{{ item }}"
+        state: directory
+        owner: ansible
+        group: ansible
+        mode: "0755"
+      loop: "{{ groups['backup_sources'] }}"
+
+
+- name: Transferir backups al destino
+  hosts: backup_sources
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Obtener backup mediante fetch
+      ansible.builtin.fetch:
+        src: "/tmp/ansible-backup/{{ inventory_hostname }}-{{ hostvars[inventory_hostname].ansible_date_time.date }}.tar.gz"
+        dest: "/tmp/ansible-backups/"
+        flat: true
+
+    - name: Copiar backup desde el nodo de control al destino
+      ansible.builtin.copy:
+        src: "/tmp/ansible-backups/{{ inventory_hostname }}-{{ hostvars[inventory_hostname].ansible_date_time.date }}.tar.gz"
+        dest: "{{ backup_destination_path }}/{{ inventory_hostname }}/{{ inventory_hostname }}-{{ hostvars[inventory_hostname].ansible_date_time.date }}.tar.gz"
+        owner: ansible
+        group: ansible
+        mode: "0644"
+      delegate_to: "{{ backup_destination_host }}"
