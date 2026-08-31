@@ -1,6 +1,6 @@
 ---
 - name: Despliegue web controlado
-  hosts: origenes
+  hosts: Origenes
   become: true
   gather_facts: true
   serial: 1

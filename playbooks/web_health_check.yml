@@ -1,6 +1,6 @@
 ---
 - name: Comprobar estado de servidores web
-  hosts: origenes
+  hosts: Origenes
   become: true
   gather_facts: true
 
