@@ -5,27 +5,97 @@
   gather_facts: true
 
   tasks:
-    - name: Comprobar que Nginx está instalado
-      ansible.builtin.package:
-        name: nginx
-        state: present
-      check_mode: true
-      register: nginx_package
+    - name: Comprobar conectividad
+      ansible.builtin.ping:
+      register: web_ping
 
-    - name: Comprobar servicio Nginx
-      ansible.builtin.service_facts:
+    - name: Mostrar conectividad
+      ansible.builtin.debug:
+        msg: "Conectividad correcta con {{ inventory_hostname }}"
+      when: web_ping.ping == "pong"
 
-    - name: Mostrar estado de Nginx
+    - name: Comprobar sistema operativo
       ansible.builtin.debug:
         msg: >-
           {{ inventory_hostname }}:
-          Nginx =
-          {{ ansible_facts.services['nginx.service'].state | default('no encontrado') }}
+          {{ ansible_distribution }}
+          {{ ansible_distribution_version }}
+
+    - name: Comprobar nombre del host
+      ansible.builtin.debug:
+        msg: >-
+          Servidor: {{ inventory_hostname }}
+          | Hostname: {{ ansible_hostname }}
+
+    - name: Obtener información de paquetes
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: Comprobar que Nginx está instalado
+      ansible.builtin.assert:
+        that:
+          - "'nginx' in ansible_facts.packages"
+        fail_msg: "Nginx no está instalado en {{ inventory_hostname }}"
+        success_msg: "Nginx está instalado en {{ inventory_hostname }}"
+
+    - name: Comprobar servicio Nginx
+      ansible.builtin.command:
+        cmd: service nginx status
+      register: nginx_service
+      changed_when: false
+      failed_when: false
 
     - name: Comprobar que Nginx está activo
       ansible.builtin.assert:
         that:
-          - ansible_facts.services['nginx.service'] is defined
-          - ansible_facts.services['nginx.service'].state == 'running'
+          - nginx_service.rc == 0
         fail_msg: "Nginx no está activo en {{ inventory_hostname }}"
         success_msg: "Nginx está activo en {{ inventory_hostname }}"
+
+    - name: Obtener versión de Nginx
+      ansible.builtin.command:
+        cmd: nginx -v
+      register: nginx_version
+      changed_when: false
+
+    - name: Mostrar versión de Nginx
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ nginx_version.stderr }}"
+
+    - name: Comprobar puerto HTTP
+      ansible.builtin.wait_for:
+        host: 127.0.0.1
+        port: 80
+        state: started
+        timeout: 5
+
+    - name: Comprobar respuesta HTTP
+      ansible.builtin.uri:
+        url: http://127.0.0.1
+        status_code: 200
+        return_content: true
+      register: web_response
+
+    - name: Mostrar resultado HTTP
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}:
+          HTTP={{ web_response.status }}
+
+    - name: Comprobar espacio disponible
+      ansible.builtin.command:
+        cmd: df -Pk /
+      register: web_disk
+      changed_when: false
+
+    - name: Validar espacio disponible
+      ansible.builtin.assert:
+        that:
+          - web_disk.rc == 0
+          - (web_disk.stdout_lines | length) >= 2
+        fail_msg: "No se pudo comprobar el espacio disponible en {{ inventory_hostname }}"
+        success_msg: "Espacio disponible comprobado en {{ inventory_hostname }}"
+
+    - name: Mostrar espacio disponible
+      ansible.builtin.debug:
+        msg: "{{ web_disk.stdout_lines }}"

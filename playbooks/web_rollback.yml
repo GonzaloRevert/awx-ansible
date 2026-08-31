@@ -5,6 +5,10 @@
   gather_facts: true
   serial: 1
 
+  vars:
+    web_index_file: /var/www/html/index.html
+    web_backup_path: /var/backups/awx-web
+
   tasks:
     - name: Comprobar si existe backup de la página
       ansible.builtin.stat:
@@ -28,15 +32,36 @@
         owner: root
         group: root
         mode: "0644"
-      notify: Reiniciar Nginx
+      register: web_rollback_result
 
     - name: Validar configuración de Nginx
       ansible.builtin.command:
         cmd: nginx -t
       changed_when: false
 
-    - name: Asegurar que Nginx está activo
+    - name: Reiniciar Nginx si se restauró la página
       ansible.builtin.service:
         name: nginx
-        enabled: true
-        state: started
+        state: restarted
+      when: web_rollback_result.changed
+
+    - name: Comprobar que Nginx está activo
+      ansible.builtin.command:
+        cmd: service nginx status
+      register: nginx_status
+      changed_when: false
+      failed_when: nginx_status.rc != 0
+
+    - name: Comprobar respuesta HTTP después del rollback
+      ansible.builtin.uri:
+        url: http://127.0.0.1
+        status_code: 200
+        return_content: true
+      register: web_response
+
+    - name: Mostrar archivo restaurado
+      ansible.builtin.debug:
+        msg: >-
+          Rollback completado en {{ inventory_hostname }}.
+          Restaurado: {{ web_backup_path }}/index.html.backup.
+          HTTP={{ web_response.status }}

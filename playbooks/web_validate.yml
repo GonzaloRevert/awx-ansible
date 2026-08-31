@@ -5,42 +5,63 @@
   gather_facts: true
 
   tasks:
-    - name: Comprobar que Nginx está activo
-      ansible.builtin.service_facts:
+    - name: Comprobar estado de Nginx
+      ansible.builtin.command:
+        cmd: service nginx status
+      register: nginx_status
+      changed_when: false
+      failed_when: false
 
-    - name: Validar servicio Nginx
+    - name: Validar que Nginx está activo
       ansible.builtin.assert:
         that:
-          - ansible_facts.services['nginx.service'] is defined
-          - ansible_facts.services['nginx.service'].state == 'running'
+          - nginx_status.rc == 0
         fail_msg: "Nginx no está activo en {{ inventory_hostname }}"
         success_msg: "Nginx está activo en {{ inventory_hostname }}"
 
-    - name: Comprobar que existe la página web
-      ansible.builtin.stat:
-        path: /var/www/html/index.html
-      register: web_index
+    - name: Comprobar respuesta HTTP
+      ansible.builtin.uri:
+        url: http://127.0.0.1
+        status_code: 200
+        return_content: true
+      register: web_response
 
-    - name: Validar existencia de la página
+    - name: Validar código HTTP
       ansible.builtin.assert:
         that:
-          - web_index.stat.exists
-          - web_index.stat.isreg
-        fail_msg: "No existe la página web en {{ inventory_hostname }}"
-        success_msg: "La página web existe en {{ inventory_hostname }}"
-
-    - name: Leer página desplegada
-      ansible.builtin.slurp:
-        src: /var/www/html/index.html
-      register: web_page
+          - web_response.status == 200
+        fail_msg: >-
+          {{ inventory_hostname }} no devuelve HTTP 200
+        success_msg: >-
+          {{ inventory_hostname }} devuelve HTTP 200
 
     - name: Validar versión desplegada
       ansible.builtin.assert:
         that:
-          - web_version in (web_page.content | b64decode)
+          - web_version in web_response.content
         fail_msg: >-
           La página de {{ inventory_hostname }}
           no contiene la versión esperada {{ web_version }}
         success_msg: >-
           La página de {{ inventory_hostname }}
           contiene la versión {{ web_version }}
+
+    - name: Validar mensaje desplegado
+      ansible.builtin.assert:
+        that:
+          - web_message in web_response.content
+        fail_msg: >-
+          La página de {{ inventory_hostname }}
+          no contiene el mensaje esperado
+        success_msg: >-
+          La página de {{ inventory_hostname }}
+          contiene el mensaje esperado
+
+    - name: Mostrar resultado final
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}:
+          Nginx activo,
+          HTTP={{ web_response.status }},
+          versión={{ web_version }},
+          validación correcta
