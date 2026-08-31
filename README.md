@@ -217,8 +217,6 @@ Los parámetros principales del Survey son:
 | `web_message` | Mensaje que aparece en la página. |
 | `web_force_failure` | Permite provocar un fallo controlado. |
 
-Para consultar la configuración completa y los resultados de las pruebas, véase la [memoria del despliegue web](docs/memoria-despliegue-awx.md).
-
 ## 9. Configuración de AWX
 
 ### Proyecto
