@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Despliegue web - {{ inventory_hostname }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            color: #1f4e79;
+        }
+
+        .info {
+            margin-top: 20px;
+        }
+
+        .info p {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .label {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Despliegue web controlado con AWX</h1>
+
+        <div class="info">
+            <p>
+                <span class="label">Servidor:</span>
+                {{ inventory_hostname }}
+            </p>
+
+            <p>
+                <span class="label">Hostname:</span>
+                {{ ansible_hostname }}
+            </p>
+
+            <p>
+                <span class="label">Versión desplegada:</span>
+                {{ web_version }}
+            </p>
+
+            <p>
+                <span class="label">Mensaje:</span>
+                {{ web_message }}
+            </p>
+
+            <p>
+                <span class="label">Fecha del despliegue:</span>
+                {{ ansible_date_time.iso8601 }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>

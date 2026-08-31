@@ -1,0 +1,9 @@
+---
+- name: Despliegue web controlado
+  hosts: origenes
+  become: true
+  gather_facts: true
+  serial: 1
+
+  roles:
+    - web_deploy

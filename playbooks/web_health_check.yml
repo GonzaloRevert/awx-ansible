@@ -1,0 +1,31 @@
+---
+- name: Comprobar estado de servidores web
+  hosts: origenes
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Comprobar que Nginx está instalado
+      ansible.builtin.package:
+        name: nginx
+        state: present
+      check_mode: true
+      register: nginx_package
+
+    - name: Comprobar servicio Nginx
+      ansible.builtin.service_facts:
+
+    - name: Mostrar estado de Nginx
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}:
+          Nginx =
+          {{ ansible_facts.services['nginx.service'].state | default('no encontrado') }}
+
+    - name: Comprobar que Nginx está activo
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['nginx.service'] is defined
+          - ansible_facts.services['nginx.service'].state == 'running'
+        fail_msg: "Nginx no está activo en {{ inventory_hostname }}"
+        success_msg: "Nginx está activo en {{ inventory_hostname }}"

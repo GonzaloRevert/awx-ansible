@@ -1,0 +1,7 @@
+---
+web_version: "1.0"
+web_message: "Página desplegada mediante AWX"
+web_document_root: /var/www/html
+web_index_file: /var/www/html/index.html
+web_backup_path: /var/backups/awx-web
+web_force_failure: false

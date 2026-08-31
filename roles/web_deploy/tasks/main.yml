@@ -1,0 +1,89 @@
+---
+- name: Instalar Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+
+- name: Crear directorio de backups
+  ansible.builtin.file:
+    path: "{{ web_backup_path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Crear directorio web
+  ansible.builtin.file:
+    path: "{{ web_document_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Comprobar si existe la página actual
+  ansible.builtin.stat:
+    path: "{{ web_index_file }}"
+  register: web_current_index
+
+- name: Generar contenido de la nueva página
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "{{ web_index_file }}.new"
+    owner: root
+    group: root
+    mode: "0644"
+  register: web_new_page
+
+- name: Comprobar si la página nueva es diferente
+  ansible.builtin.command:
+    cmd: "cmp -s {{ web_index_file }}.new {{ web_index_file }}"
+  register: web_page_comparison
+  changed_when: false
+  failed_when: false
+  when: web_current_index.stat.exists
+
+- name: Crear copia de seguridad de la página actual
+  ansible.builtin.copy:
+    src: "{{ web_index_file }}"
+    dest: "{{ web_backup_path }}/index.html.backup"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - web_current_index.stat.exists
+    - web_page_comparison.rc | default(1) != 0
+
+- name: Instalar nueva página
+  ansible.builtin.copy:
+    src: "{{ web_index_file }}.new"
+    dest: "{{ web_index_file }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reiniciar Nginx
+  when:
+    - not web_current_index.stat.exists or web_page_comparison.rc | default(1) != 0
+
+- name: Eliminar archivo temporal de la página
+  ansible.builtin.file:
+    path: "{{ web_index_file }}.new"
+    state: absent
+
+- name: Validar configuración de Nginx
+  ansible.builtin.command:
+    cmd: nginx -t
+  changed_when: false
+
+- name: Ejecutar fallo controlado si está solicitado
+  ansible.builtin.fail:
+    msg: "Fallo controlado solicitado mediante web_force_failure=true"
+  when: web_force_failure | bool
+
+- name: Habilitar y arrancar Nginx
+  ansible.builtin.service:
+    name: nginx
+    enabled: true
+    state: started

@@ -1,0 +1,42 @@
+---
+- name: Rollback del despliegue web
+  hosts: origenes
+  become: true
+  gather_facts: true
+  serial: 1
+
+  tasks:
+    - name: Comprobar si existe backup de la página
+      ansible.builtin.stat:
+        path: "{{ web_backup_path }}/index.html.backup"
+      register: web_backup
+
+    - name: Detener rollback si no existe backup
+      ansible.builtin.assert:
+        that:
+          - web_backup.stat.exists
+        fail_msg: >-
+          No existe backup para realizar rollback en {{ inventory_hostname }}
+        success_msg: >-
+          Existe backup para realizar rollback en {{ inventory_hostname }}
+
+    - name: Restaurar página anterior
+      ansible.builtin.copy:
+        src: "{{ web_backup_path }}/index.html.backup"
+        dest: "{{ web_index_file }}"
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reiniciar Nginx
+
+    - name: Validar configuración de Nginx
+      ansible.builtin.command:
+        cmd: nginx -t
+      changed_when: false
+
+    - name: Asegurar que Nginx está activo
+      ansible.builtin.service:
+        name: nginx
+        enabled: true
+        state: started
