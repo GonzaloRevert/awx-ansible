@@ -1,14 +1,5 @@
 # AWX Ansible: backups y despliegue web controlado
-
 Proyecto de automatización de copias de seguridad, validación, pruebas de restauración y despliegue web controlado utilizando Ansible y AWX.
-
-## Documentación
-
-La memoria completa del despliegue web está disponible en:
-
-- [Memoria del despliegue web controlado con AWX](docs/memoria-despliegue-awx.md)
-
-Este documento resume la configuración del proyecto. La memoria incluye el detalle de la arquitectura, los playbooks, el Workflow, las pruebas realizadas y el resultado del rollback.
 
 ## 1. Objetivo
 
