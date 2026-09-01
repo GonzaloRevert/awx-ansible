@@ -408,4 +408,3 @@ La siguiente evolución es completar el sistema de backups con:
 - rsync
 - Git
 - YAML
-- KOKO
