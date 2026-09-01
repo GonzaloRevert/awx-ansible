@@ -1,0 +1,24 @@
+---
+- name: Despliegue de servidor Web Nginx
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Actualizar cache de apt
+      apt:
+        update_cache: yes
+
+    - name: Instalar Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Asegurar que Nginx está arrancado
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Crear página web personalizada
+      copy:
+        content: "<h1>Hola desde {{ ansible_hostname }} - Servidor desplegado con Ansible</h1>"
+        dest: /var/www/html/index.html
