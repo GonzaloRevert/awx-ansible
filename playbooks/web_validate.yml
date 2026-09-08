@@ -1,6 +1,6 @@
 ---
 - name: Validar despliegue web
-  hosts: Origenes
+  hosts: origenes
   become: true
   gather_facts: true
 

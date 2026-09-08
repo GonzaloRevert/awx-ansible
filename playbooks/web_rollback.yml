@@ -1,6 +1,6 @@
 ---
 - name: Rollback del despliegue web
-  hosts: Origenes
+  hosts: origenes
   become: true
   gather_facts: true
   serial: 1
