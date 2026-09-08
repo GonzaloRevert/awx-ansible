@@ -26,23 +26,6 @@
     path: "{{ web_index_file }}"
   register: web_current_index
 
-- name: Generar contenido de la nueva página
-  ansible.builtin.template:
-    src: index.html.j2
-    dest: "{{ web_index_file }}.new"
-    owner: root
-    group: root
-    mode: "0644"
-  register: web_new_page
-
-- name: Comprobar si la página nueva es diferente
-  ansible.builtin.command:
-    cmd: "cmp -s {{ web_index_file }}.new {{ web_index_file }}"
-  register: web_page_comparison
-  changed_when: false
-  failed_when: false
-  when: web_current_index.stat.exists
-
 - name: Crear copia de seguridad de la página actual
   ansible.builtin.copy:
     src: "{{ web_index_file }}"
@@ -51,26 +34,16 @@
     owner: root
     group: root
     mode: "0644"
-  when:
-    - web_current_index.stat.exists
-    - web_page_comparison.rc | default(1) != 0
+  when: web_current_index.stat.exists
 
-- name: Instalar nueva página
-  ansible.builtin.copy:
-    src: "{{ web_index_file }}.new"
+- name: Generar nueva página
+  ansible.builtin.template:
+    src: index.html.j2
     dest: "{{ web_index_file }}"
-    remote_src: true
     owner: root
     group: root
     mode: "0644"
   notify: Reiniciar Nginx
-  when:
-    - not web_current_index.stat.exists or web_page_comparison.rc | default(1) != 0
-
-- name: Eliminar archivo temporal de la página
-  ansible.builtin.file:
-    path: "{{ web_index_file }}.new"
-    state: absent
 
 - name: Validar configuración de Nginx
   ansible.builtin.command:
